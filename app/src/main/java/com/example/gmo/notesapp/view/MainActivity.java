@@ -1,6 +1,5 @@
 package com.example.gmo.notesapp.view;
 
-import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.support.design.widget.CoordinatorLayout;
 import android.support.design.widget.FloatingActionButton;
@@ -8,10 +7,13 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
+import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.TextView;
+import android.support.v7.app.AlertDialog;
+import android.widget.Toast;
 
 import com.example.gmo.notesapp.R;
 import com.example.gmo.notesapp.network.ApiService;
@@ -79,13 +81,13 @@ public class MainActivity extends AppCompatActivity {
      * @param note
      * @param position
      */
-    private void showDialogAddNote(boolean shouldUpdate, Note note, int position) {
+    private void showDialogAddNote(final boolean shouldUpdate, final Note note, final int position) {
         LayoutInflater inflater = LayoutInflater.from(this);
         View view = inflater.inflate(R.layout.note_dialog,null);
 
-        AlertDialog.Builder dialog = new AlertDialog.Builder(this);
+        final AlertDialog.Builder dialog = new AlertDialog.Builder(this);
         dialog.setView(view);
-        EditText edNote = view.findViewById(R.id.note);
+        final EditText edNote = view.findViewById(R.id.note);
         TextView tvTitle = view.findViewById(R.id.dialog_title);
         tvTitle.setText(!shouldUpdate ? "New Note" : "Edit Note");
 
@@ -107,6 +109,47 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        final AlertDialog alertDialog = dialog.create();
+        alertDialog.show();
+        alertDialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                //Hiển thị toast khi chưa có text nhập vào
+                if (TextUtils.isEmpty(edNote.getText().toString())){
+                    Toast.makeText(MainActivity.this, "Enter note!", Toast.LENGTH_SHORT).show();
+                    return;
+                }else {
+                    //Đóng dialog
+                    alertDialog.dismiss();
+                }
+
+                /*Check là tạo note mới hay update note*/
+                if (shouldUpdate && note != null){
+                    //Nếu là update thì update note theo id
+                    updateNote(note.getId(),edNote.getText().toString(),position);
+                }else {
+                    //Thêm một note mới
+                    createNote(edNote.getText().toString());
+                }
+            }
+        });
+    }
+
+    /**
+     * Create new note
+     * @param note
+     */
+    private void createNote(String note) {
+
+    }
+
+    /**
+     * Cập nhật note theo id
+     * @param id
+     * @param note
+     * @param position
+     */
+    private void updateNote(int id, String note, int position) {
 
     }
 }
