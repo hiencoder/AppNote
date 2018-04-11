@@ -44,6 +44,12 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.UUID;
+
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
@@ -53,6 +59,7 @@ import io.reactivex.functions.Function;
 import io.reactivex.observers.DisposableCompletableObserver;
 import io.reactivex.observers.DisposableSingleObserver;
 import io.reactivex.schedulers.Schedulers;
+import retrofit2.http.HEAD;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = MainActivity.class.getSimpleName();
@@ -72,6 +79,7 @@ public class MainActivity extends AppCompatActivity {
     FloatingActionButton fabAddNote;
 
     private List<Note> noteList = new ArrayList<>();
+
     private NoteAdapter noteAdapter;
 
     @Override
@@ -88,7 +96,9 @@ public class MainActivity extends AppCompatActivity {
         //Set background cho status bar
         whiteNotificationBar(fabAddNote);
 
+
         apiService = ApiClient.getClient(this).create(ApiService.class);
+
 
         noteAdapter = new NoteAdapter(this, noteList);
         RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false);
@@ -98,6 +108,8 @@ public class MainActivity extends AppCompatActivity {
         rvNotes.setAdapter(noteAdapter);
 
         /*Sự kiện click cho recyclerview*/
+        /*Su kien long click khi thi se mo ra 2 option edit va delete*/
+
         rvNotes.addOnItemTouchListener(new RecyclerTouchListener(this, rvNotes, new ClickListener() {
             @Override
             public void onClick(View view, int position) {
@@ -293,16 +305,59 @@ public class MainActivity extends AppCompatActivity {
 
 
     /**
+     * Lay ve danh sahc note do len recylcerview
+     * Nhan ve cac item se duoc sap xep ngau nhien
+     * toan tu map() duoc su dung de sap xep cac item theo thu tu giam dan id
+     */
+    private void fetchAllNote() {
+        disposable.add(apiService.fetchAllNotes()
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .map(new Function<List<Note>, List<Note>>() {
+                    @Override
+                    public List<Note> apply(List<Note> notes) throws Exception {
+                        /*Sap xep cac note theo id giam dan*/
+                        Collections.sort(notes, new Comparator<Note>() {
+                            @Override
+                            public int compare(Note o1, Note o2) {
+                                return o1.getId() - o2.getId();
+                            }
+                        });
+                        return notes;
+                    }
+                })
+                .subscribeWith(new DisposableSingleObserver<List<Note>>() {
+                    @Override
+                    public void onSuccess(List<Note> notes) {
+                        /*Danh sach note sau khi sap xep se duoc phat ra
+                        * va lang nghe trong subscribe*/
+                        noteList.clear();
+                        noteList.addAll(notes);
+                        noteAdapter.notifyDataSetChanged();
+
+                        toggleEmptyNote();
+                    }
+
+                    @Override
+
+                    public void onError(Throwable e) {
+                        Log.e(TAG, "onError: " + e.getMessage());
+                        showError(e);
+                    }
+                }));
+    }
+
+
+    /**
      * @param view
      */
     private void whiteNotificationBar(View view) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            int flags = view.getSystemUiVisibility();
-            flags |= View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
-            view.setSystemUiVisibility(flags);
+            int flag = view.getSystemUiVisibility();
+            flag |= View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
+            view.setSystemUiVisibility(flag);
             getWindow().setStatusBarColor(Color.WHITE);
         }
-
     }
 
     @OnClick(R.id.fab)
